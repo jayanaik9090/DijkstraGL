@@ -16,6 +16,8 @@ int main(int argc, char**argv)
     glutMouseFunc(util::mouse);
     glutPassiveMotionFunc(util::motion);
     glutMotionFunc(util::mouseMotion);
+  //  glutIdleFunc(util::idle);
+
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     //util::initRandomLines();

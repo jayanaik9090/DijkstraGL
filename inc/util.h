@@ -6,6 +6,7 @@
 
 
 #include "glcontext.h"
+//#include <windows.h>
 #define FONT1 GLUT_BITMAP_9_BY_15
 
 namespace util{
@@ -16,6 +17,7 @@ namespace util{
     float lineWidth = 4;
     bool animate = true;
     bool start=false;
+    bool busy = false;
     Node* curNode = NULL;
     Node* source = NULL;
     Node* dest = NULL;
@@ -68,7 +70,7 @@ namespace util{
 
 
     void display()
-    {   
+    {   //std::cout<<"display\n";
         GLContext::clear();
         GLContext::drawNodes(v);
         GLContext::drawEdges();
@@ -89,14 +91,16 @@ namespace util{
 
     void idle()
     {
-        //GLContext::redraw();
+       // GLContext::post();
     }
 
     
 
 
     void mouse(int btn,int state,int x,int y)
-    {
+    {   
+        
+
         if(btn==GLUT_LEFT_BUTTON && state==GLUT_DOWN){
             start=true;
             
@@ -122,7 +126,8 @@ namespace util{
                 }
 
             if(!curNode || curEdge.first == curNode)
-            {    curEdge = {NULL,NULL}; std::cout<<"Reseting\n";}
+            {    curEdge = {NULL,NULL}; //std::cout<<"Reseting\n";
+            }
             else if(curNode!=curEdge.first && curEdge.first!=NULL)
             {
                 curEdge.second=curNode;
@@ -145,6 +150,7 @@ namespace util{
     
 
     void motion(int x,int y){
+        
         bool collides = false;
         
         for(auto &i:v)
@@ -169,6 +175,7 @@ namespace util{
     }
 
     void mouseMotion(int x,int y){
+
         //for dotted line
         if(curEdge.first)   {
             GLContext::clear();
@@ -193,13 +200,15 @@ namespace util{
     //helper functions
     void defaultMenuHandler(int option){
         if(option==3)
-            {v.clear();msgs.clear(); Node::count=0;Graph::neighbours.clear();Graph::edgeColors.clear();Graph::parent.clear();Graph::pathVec.clear();}
+            {v.clear(); Node::count=0;Graph::neighbours.clear();Graph::edgeColors.clear();Graph::parent.clear();Graph::pathVec.clear();}
         if(option==2){
             if(source==NULL)
             {addMessage("src: No source selected!",0);return;}
             if(dest==NULL)
-            {addMessage("dest: No dest selected!",1);return;}    
-            int cost = Graph::dijkstra(v,source,dest);
+            {addMessage("dest: No dest selected!",1);return;}
+            busy=true;    
+            int cost = Graph::dijkstra(v,source,dest)
+;            busy=false;
             addMessage("cost: "+std::to_string(cost),2);
 
         }
@@ -259,7 +268,125 @@ namespace util{
         t.draw(font);
     }
 
-    
+ 
+static int Graph::dijkstra(std::list<Node> &v,Node* src,Node *dest){
+    std::priority_queue <intNodePair,std::vector<intNodePair>,std::greater<intNodePair>> pq;
+    std::map<Node*,int> dist;//(v.size(),inf);
+    std::map<Node*,bool> visited;
+
+    for(auto &i:v)
+    {   dist[&i]=inf;
+        parent[&i]=NULL;
+        visited[&i]=false;   
+    }
+
+    pq.push({0,src});
+    dist[src]=0;
+    while(!pq.empty()){
+        Node* u = pq.top().second;
+        std::cout<<"Pop: "<<u->id<<", "<<pq.top().first<<std::endl;
+        pq.pop();
+        
+        if(visited[u]){
+            // for(int k=0;k<50000;k++)
+            // { 
+            //     for(int l=0;l<500;l++);
+            // }
+            Sleep(500);
+            GLContext::clear();
+            GLContext::drawNodes(util::v);
+            GLContext::drawEdges();
+            GLContext::update();
+            continue;
+        }
+
+        visited[u] = true;
+        u->setHighlight(true,{255,0,0});
+        for(auto &i:neighbours[u]){
+            Node *v = i;
+            Edge e = {u,v};
+            Edge e2 = {v,u};
+            edgeColors[e].first = {255,0,0};
+            edgeColors[e2].first = {255,0,0};
+            GLContext::clear();
+            GLContext::drawNodes(util::v);
+            GLContext::drawEdges();
+            GLContext::update();
+
+            // for(int k=0;k<50000;k++)
+            // {   //GLContext::post();
+            //     for(int l=0;l<500;l++);
+            // }  
+            Sleep(500);
+            GLContext::clear();
+            GLContext::drawNodes(util::v);
+            GLContext::drawEdges();
+            GLContext::update();     
+
+            int wt=edgeColors[e].second;
+            if(dist[u]+wt < dist[v] && !visited[v])
+            {
+                dist[v] = dist[u]+wt;
+                pq.push({dist[v],v});
+                std::cout<<"pushing: "<<v->id<<", "<<dist[v]<<std::endl;
+                parent[v]=u;
+            }
+            
+            edgeColors[e].first = {0,0,0};
+            edgeColors[e2].first = {0,0,0};
+                            
+            GLContext::clear();
+            GLContext::drawNodes(util::v);
+            GLContext::drawEdges();
+            GLContext::update();
+
+            // for(int k=0;k<50000;k++)
+            // { //  GLContext::post();
+            //     for(int l=0;l<500;l++);
+            // }
+            Sleep(500);
+            GLContext::clear();
+            GLContext::drawNodes(util::v);
+            GLContext::drawEdges();
+            GLContext::update();
+
+
+        }
+
+        u->setHighlight(false);
+        u->setColor(0.2,0.2,0.2); //grey
+        //GLContext::post();
+    }
+
+    // std::cout<<"vertex\t\tdistance\tpath"<<std::endl;
+    // for(auto &i:dist){
+    //     std::cout<<i.first->id<<"\t\t"<<dist[i.first]<<"\t\t";
+    //     if(dist[i.first]!=inf) path(i.first);
+    //    std::cout<<std::endl;
+    // }
+
+
+    path(dest);
+    for(auto i=0;i<pathVec.size()-1;i++)
+    {   
+        setEdgeColor({pathVec[i],pathVec[i+1]},{0,255,0});//
+        GLContext::clear();
+        GLContext::drawNodes(util::v);
+        GLContext::drawEdges();
+        GLContext::update();
+        // for(int k=0;k<50000;k++)
+        // { //  GLContext::post();
+        //         for(int l=0;l<500;l++);
+        // }
+        Sleep(200);
+    }
+
+    pathVec[0]->setColor(0,255,0);
+    pathVec.back()->setColor(0,255,0);
+    GLContext::post();
+    return dist[dest];
+ 
+}
 
     
 

@@ -20,7 +20,7 @@ namespace GLContext {
         glutCreateWindow(title.c_str());
         glEnable(GL_DEPTH_TEST);
          glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-         glClearColor(1, 1, 1,0);
+         glClearColor(1,1,1,0);
 
     }
 
@@ -55,6 +55,8 @@ namespace GLContext {
     static void drawEdges(){
         Graph::draw();
     }
+
+
 
 
 };

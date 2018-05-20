@@ -25,7 +25,9 @@ typedef std::map<Node*,std::set<Node*>> NeighbourMap;
 typedef std::map<Edge,std::pair<COLOR,float>> EdgeColorCostMap;
 typedef std::map<Node*,Node*> NodeNodeMap;
 typedef std::vector<Node*> PathVector;
-int WIDTH=20;
+typedef std::pair<int,Node*> intNodePair;
+
+int WIDTH=25;
 
 
 class Drawable {
@@ -59,6 +61,7 @@ private:
     
     bool highlight;
     RECT bound;
+    COLOR hcolor = {0,1,0};
 
 public:
     static int count;
@@ -67,7 +70,8 @@ public:
     coord pos;
     std::string id;
     Node(coord pos, float r,float g,float b);
-    void setHighlight(bool);
+    void setHighlight(bool,COLOR hcolor={0,1,0});
+    void setColor(float r,float g,float b);
     void draw();
     bool collides(int,int); 
     void Node::setPos(int x,int y);
@@ -75,7 +79,7 @@ public:
 
 
 Node::Node(coord pos, float r, float g, float b)
-{   std::cout<<"Node created!\n";
+{   //std::cout<<"Node created!\n";
     this->pos = pos;
     this->r = r;
     this->g = g;
@@ -104,7 +108,10 @@ void Node::draw() {
 
     if (highlight){
         glLineWidth(2);
-        glColor3fv(color::GREEN);
+        COLOR r = {255,0,0};
+        if(hcolor == r)
+            glLineWidth(3);
+        glColor3f(hcolor[0],hcolor[1],hcolor[2]);
         glBegin(GL_LINE_LOOP);
             glVertex3f(bound.left-15,bound.bottom+15,-1);
             glVertex3f(bound.right+15,bound.bottom+15,-1);
@@ -121,9 +128,17 @@ void Node::draw() {
 }
 
 
-void Node::setHighlight(bool val) {
+void Node::setHighlight(bool val,COLOR hcolor={0,1,0}) {
     highlight = val;
+    this->hcolor = hcolor;
   //  std::cout<<"Node "<<id<<" highlight with value: "<<this->highlight<< std::endl;
+}
+
+void Node::setColor(float r,float g,float b){
+    this->r=r;
+    this->g=g;
+    this->b=b;
+
 }
 
 void Node::setPos(int x,int y){
@@ -202,8 +217,9 @@ static void Graph::addEdge(Edge edge){
     neighbours[edge.second].insert(edge.first);
     COLOR c = {0,0,0};//{edge.first->r,edge.first->g,edge.first->b};
     setEdgeColor(edge,c);
-    std::cout<<"Input Cost for edge ("<<edge.first->id<<","<<edge.second->id<<") : ";
-    std::cin>>edgeColors[edge].second;
+    //std::cout<<"Input Cost for edge ("<<edge.first->id<<","<<edge.second->id<<") : ";
+    //std::cin>>edgeColors[edge].second;
+    edgeColors[edge].second = rand()%10;
     Edge edge2 = {edge.second,edge.first};
     edgeColors[edge2].second=edgeColors[edge].second;
 }
@@ -219,15 +235,21 @@ static void Graph::draw(){
   //  glColor3fv(colors[u,v]);
     for(auto &u:neighbours)
     for(auto &v:u.second){
-        glBegin(GL_LINES);
         coord pos1 = u.first->pos;
         coord pos2 = v->pos;
         Edge edge = {u.first,v};
         const COLOR c = edgeColors[edge].first;
-        glColor3ub(c[0],c[1],c[2]);
-        glVertex3f(pos1.x,pos1.y,-1.5);
-        glVertex3f(pos2.x,pos2.y,-1.5); 
-         glEnd();
+        const COLOR r = {255,0,0};
+        const COLOR g = {0,255,0};
+
+        glLineWidth(2.0);
+        if(c==r || c==g)
+            glLineWidth(5.0);
+        glBegin(GL_LINES);
+            glColor3ub(c[0],c[1],c[2]);
+            glVertex3f(pos1.x,pos1.y,-1.5);
+            glVertex3f(pos2.x,pos2.y,-1.5); 
+        glEnd();
         coord mid = {(pos1.x+pos2.x)/2,(pos1.y+pos2.y)/2};
         glColor3f(1,1,1);
         glRectf(mid.x-15,mid.y+15,mid.x+15,mid.y-15);
@@ -238,57 +260,18 @@ static void Graph::draw(){
     }   
 }
 
-typedef std::pair<int,Node*> intNodePair;
-static int Graph::dijkstra(std::list<Node> &v,Node* src,Node *dest){
-    std::priority_queue <intNodePair,std::vector<intNodePair>,std::greater<intNodePair>> pq;
-    std::map<Node*,int> dist;//(v.size(),inf);
-    for(auto &i:v)
-    {   dist[&i]=inf;
-        parent[&i]=NULL;
-    }
-    pq.push({0,src});
-    dist[src]=0;
-    while(!pq.empty()){
-        Node* u = pq.top().second;
-        pq.pop();
-        for(auto &i:neighbours[u]){
-            Node *v = i;
-            Edge e = {u,v};
-            int wt=edgeColors[e].second;
-            if(dist[u]+wt < dist[v])
-            {
-                dist[v] = dist[u]+wt;
-                pq.push({dist[v],v});
-                parent[v]=u;
-            }
-        }
-    }
 
-    // std::cout<<"vertex\t\tdistance\tpath"<<std::endl;
-    // for(auto &i:dist){
-    //     std::cout<<i.first->id<<"\t\t"<<dist[i.first]<<"\t\t";
-    //     if(dist[i.first]!=inf) path(i.first);
-    //    std::cout<<std::endl;
-    // }
-
-    path(dest);
-    for(auto i=0;i<pathVec.size()-1;i++)
-        setEdgeColor({pathVec[i],pathVec[i+1]},{0,255,0});//
-    return dist[dest];
-  //      edgeColors[{pathVec[i],pathVec[i+1]}].first= {0,255,0};
-
-}
 
 void Graph::path(Node *v){
     if(parent[v]==NULL)
     {
-        std::cout<<v->id<<",";
+        //std::cout<<v->id<<",";
         pathVec.push_back(v);
         return;
     }
 
     path(parent[v]);
-    std::cout<<v->id<<",";
+   // std::cout<<v->id<<",";
     pathVec.push_back(v);
 }
 
