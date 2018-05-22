@@ -7,7 +7,7 @@
 int main(int argc, char**argv)
 {
 
-    std::cout << "Dijkstra";
+    cout << "Dijkstra";
     GLContext::initWindow(argc, argv, "Dijkstra" ,1032, 500); //glutInit & create window
     //set callbacks
     glutDisplayFunc(util::display); //glutDisplayFunc

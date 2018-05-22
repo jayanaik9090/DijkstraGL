@@ -12,7 +12,8 @@
 #include <GL/glut.h>
 #include "color.h"
 #include <queue>
-#include <functional> //std::greater
+#include <functional> //greater
+using namespace std;
 class Node;
 typedef struct COORD_ {
     SHORT x;
@@ -20,12 +21,12 @@ typedef struct COORD_ {
     SHORT z;
 } coord;
 
-typedef std::pair<Node*,Node*> Edge;
-typedef std::map<Node*,std::set<Node*>> NeighbourMap;
-typedef std::map<Edge,std::pair<COLOR,float>> EdgeColorCostMap;
-typedef std::map<Node*,Node*> NodeNodeMap;
-typedef std::vector<Node*> PathVector;
-typedef std::pair<int,Node*> intNodePair;
+typedef pair<Node*,Node*> Edge;
+typedef map<Node*,set<Node*>> NeighbourMap;
+typedef map<Edge,pair<COLOR,float>> EdgeColorCostMap;
+typedef map<Node*,Node*> NodeNodeMap;
+typedef vector<Node*> PathVector;
+typedef pair<int,Node*> intNodePair;
 
 int WIDTH=25;
 
@@ -43,10 +44,10 @@ public:
 class Text : public Drawable{
 
 private:
-    std::string s;
+    string s;
     int x,y;
 public:
-    Text(std::string,int x,int y);    
+    Text(string,int x,int y);    
     void draw(void* font=GLUT_BITMAP_9_BY_15);
 };
 
@@ -66,9 +67,10 @@ private:
 public:
     static int count;
     float r, g, b;
+    int wt;
     bool selected;
     coord pos;
-    std::string id;
+    string id;
     Node(coord pos, float r,float g,float b);
     void setHighlight(bool,COLOR hcolor={0,1,0});
     void setColor(float r,float g,float b);
@@ -79,14 +81,15 @@ public:
 
 
 Node::Node(coord pos, float r, float g, float b)
-{   //std::cout<<"Node created!\n";
+{   //cout<<"Node created!\n";
     this->pos = pos;
     this->r = r;
     this->g = g;
     this->b = b;
-    id = std::string(1,'a'+count++); //create new string on single character
+    id = string(1,'a'+count++); //create new string on single character
     highlight = false;
     selected = false;
+    wt=-1;
     bound = {pos.x - WIDTH, pos.y - WIDTH, pos.x + WIDTH, pos.y + WIDTH};
 }
 
@@ -97,8 +100,16 @@ void Node::draw() {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glBegin(GL_QUADS);
-        glColor3ub(r, g, b);
-        //glColor3ub(105,105,105);
+        //0.8,0,0.3
+        //glColor3f(0.8, 0, 0.3);
+        glColor3ub(r,g,b);
+        COLOR green = {255,0,0};
+        COLOR yel = {255,255,0};
+        if(highlight && hcolor == green)
+            glColor3ub(0,255,0);
+        if(highlight && hcolor == yel)
+            glColor3ub(255,0,0);
+
         glVertex3f(bound.left,bound.bottom,1);
         glVertex3f(bound.right,bound.bottom,1);
         glVertex3f(bound.right,bound.top,1);    
@@ -106,11 +117,8 @@ void Node::draw() {
 
     glEnd();
 
-    if (highlight){
+    if (highlight && hcolor!=green && hcolor!=yel){
         glLineWidth(2);
-        COLOR r = {255,0,0};
-        if(hcolor == r)
-            glLineWidth(3);
         glColor3f(hcolor[0],hcolor[1],hcolor[2]);
         glBegin(GL_LINE_LOOP);
             glVertex3f(bound.left-15,bound.bottom+15,-1);
@@ -119,19 +127,43 @@ void Node::draw() {
             glVertex3f(bound.left-15,bound.top-15,-1);
         glEnd();
     }
+    int lw=2.0;
+    glBegin(GL_POLYGON);
+        glColor3ub(0,0,0);
+        if(highlight && hcolor==green)
+        glColor3ub(0,100,0);
+        glVertex3f(bound.left-lw,bound.bottom+lw,-1);
+        glVertex3f(bound.right+lw,bound.bottom+lw,-1);
+        glVertex3f(bound.right+lw,bound.top-lw,-1);    
+        glVertex3f(bound.left-lw,bound.top-lw,-1);
+
+
+    glEnd();
 
     glPopMatrix();
-
     glColor3f(1,1,1);
     Text t (id,pos.x,pos.y);
     t.draw();
+
+    glColor3f(1,1,1);
+        glRectf(pos.x-15,pos.y-28,pos.x+15,pos.y-43);
+    
+    glColor3f(0,0,0);
+    char buf[100];
+    sprintf(buf, "%d", wt);
+    string s(buf);
+    if(wt==-1)
+        s="inf";
+    Text t1 (s,pos.x,pos.y-35);
+    t1.draw();
+
 }
 
 
 void Node::setHighlight(bool val,COLOR hcolor={0,1,0}) {
     highlight = val;
     this->hcolor = hcolor;
-  //  std::cout<<"Node "<<id<<" highlight with value: "<<this->highlight<< std::endl;
+  //  cout<<"Node "<<id<<" highlight with value: "<<this->highlight<< endl;
 }
 
 void Node::setColor(float r,float g,float b){
@@ -151,7 +183,7 @@ bool Node::collides(int x,int y){
     &&  x <= bound.right+20  
     &&  y >= bound.top-20
     &&  y <= bound.bottom+20)
-    {   //std::cout<<"Hit: "<<id<<std::endl;
+    {   //cout<<"Hit: "<<id<<endl;
         highlight=true;
         return true;
     }
@@ -161,15 +193,15 @@ bool Node::collides(int x,int y){
 }
 
 
-Text::Text(std::string s,int x,int y){
-    //std::cout<<"String: "<<s<<std::endl;
+Text::Text(string s,int x,int y){
+    //cout<<"String: "<<s<<endl;
     this->s=s;
     this->x=x;
     this->y=y;
 }
 
 void Text::draw(void* font) {
-        // std::cout<<cstr<<std::endl;
+        // cout<<cstr<<endl;
          const char *cstr=s.c_str();
         glPushMatrix();
         int w = glutBitmapLength(font, cstr);
@@ -190,12 +222,12 @@ class Graph{
 public:    
     static NeighbourMap neighbours;
     static EdgeColorCostMap edgeColors;
-    static std::map<Node*,Node*> parent;
+    static map<Node*,Node*> parent;
     static PathVector pathVec;
     static void addEdge(Edge);
     static void removeEdge(Node* u);
     static void setEdgeColor(Edge edge,COLOR c);
-    static int dijkstra(std::list<Node> &v,Node* src,Node *dest);
+    static int dijkstra(list<Node> &v,Node* src,Node *dest);
     static void draw();
     static void path(Node *v);
     static void Graph::reset();
@@ -217,9 +249,7 @@ static void Graph::addEdge(Edge edge){
     neighbours[edge.second].insert(edge.first);
     COLOR c = {0,0,0};//{edge.first->r,edge.first->g,edge.first->b};
     setEdgeColor(edge,c);
-    //std::cout<<"Input Cost for edge ("<<edge.first->id<<","<<edge.second->id<<") : ";
-    //std::cin>>edgeColors[edge].second;
-    edgeColors[edge].second = rand()%10;
+    edgeColors[edge].second = rand()%10+1; //seting cost
     Edge edge2 = {edge.second,edge.first};
     edgeColors[edge2].second=edgeColors[edge].second;
 }
@@ -241,22 +271,32 @@ static void Graph::draw(){
         const COLOR c = edgeColors[edge].first;
         const COLOR r = {255,0,0};
         const COLOR g = {0,255,0};
-
+        const COLOR y = {255,255,0};
         glLineWidth(2.0);
-        if(c==r || c==g)
-            glLineWidth(5.0);
+        if(c==r || c==g ||c==y)
+            glLineWidth(8.0);
         glBegin(GL_LINES);
+            
+
             glColor3ub(c[0],c[1],c[2]);
+            if(c==r)
+                glColor3ub(0,255,0);
             glVertex3f(pos1.x,pos1.y,-1.5);
-            glVertex3f(pos2.x,pos2.y,-1.5); 
+            glVertex3f(pos2.x,pos2.y,-1.5);
+
+
         glEnd();
         coord mid = {(pos1.x+pos2.x)/2,(pos1.y+pos2.y)/2};
         glColor3f(1,1,1);
         glRectf(mid.x-15,mid.y+15,mid.x+15,mid.y-15);
         glColor3f(0,0,0);
+
         int cost = edgeColors[edge].second;
-        Text t (std::to_string(cost),mid.x,mid.y+2);
-        t.draw(GLUT_BITMAP_HELVETICA_18);  
+        Text t (to_string(cost),mid.x,mid.y+2);
+        if(c!=r)
+            t.draw(GLUT_BITMAP_HELVETICA_18);  
+        else
+            t.draw(GLUT_BITMAP_TIMES_ROMAN_24);
     }   
 }
 
@@ -265,13 +305,13 @@ static void Graph::draw(){
 void Graph::path(Node *v){
     if(parent[v]==NULL)
     {
-        //std::cout<<v->id<<",";
+        //cout<<v->id<<",";
         pathVec.push_back(v);
         return;
     }
 
     path(parent[v]);
-   // std::cout<<v->id<<",";
+   // cout<<v->id<<",";
     pathVec.push_back(v);
 }
 
