@@ -39,9 +39,12 @@ This project can easily be extended to implement other graph algorithms
 
 ## Dijkstra algorithm finding the Shortest Path
 ![10_SHORT_PATH](screenshots/10_SHORT_PATH.png)
+## Searching all paths
 ![11_SHORT_PATH_1](screenshots/11_SHORT_PATH_1.png)
 ![12_SHORT_PATH_2](screenshots/12_SHORT_PATH_2.png)
 ![13_SHORT_PATH_3](screenshots/13_SHORT_PATH_3.png)
+
+## Shortest path from source to destination highlighted
 ![14_SHORT_PATH_FINAL](screenshots/14_SHORT_PATH_FINAL.png)
 
 ## Clear screen
